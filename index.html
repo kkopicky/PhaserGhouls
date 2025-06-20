@@ -18,11 +18,12 @@ class TitleScene extends Phaser.Scene {
   }
   preload() {
     this.load.image('title', 'assets/title.png');
-    this.load.audio('music', 'assets/title-music.mp3');
+    //this.load.audio('music', 'assets/title-music.mp3');
   }
   create() {
-    this.add.image(400, 300, 'title');
-    this.sound.add('music').play({ loop: true });
+    this.add.image(400, 450, 'title');
+    this.player = this.physics.add.sprite(100, 450, 'player', 0); // Frame 0
+    //this.sound.add('music').play({ loop: true });
     this.input.once('pointerdown', () => {
       this.sound.stopAll();
       this.scene.start('GameScene', { level: 1 });
@@ -40,33 +41,34 @@ class GameScene extends Phaser.Scene {
   }
   preload() {
     this.load.image('bg', `assets/level${this.level}-bg.png`);
-    this.load.spritesheet('player', 'assets/player-sprite.png', { frameWidth: 32, frameHeight: 48 });
-    this.load.spritesheet('enemy', 'assets/enemy-sprite.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('player', 'assets/player.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('enemy', 'assets/enemy.png', { frameWidth: 64, frameHeight: 64 });
     this.load.image('platform', 'assets/platform.png');
-    this.load.spritesheet('ghost', 'assets/ghost-sprite.png', { frameWidth: 32, frameHeight: 32 });
   }
   create() {
-    this.add.image(400, 300, 'bg');
+    this.add.image(400, 450, 'bg');
 
     const platforms = this.physics.add.staticGroup();
     platforms.create(400, 568, 'platform').setScale(2).refreshBody();
 
-    this.player = this.physics.add.sprite(100, 450, 'player').setBounce(0.2).setCollideWorldBounds(true);
+    this.player = this.physics.add.sprite(100, 450, 'player');
+    this.player.setBounce(0.2);
+    this.player.setCollideWorldBounds(true);
 
     this.anims.create({
       key: 'left',
-      frames: this.anims.generateFrameNumbers('player', { start: 0, end: 3 }),
+      frames: this.anims.generateFrameNumbers('player', { start: 0, end: 2 }),
       frameRate: 10,
       repeat: -1
     });
     this.anims.create({
       key: 'turn',
-      frames: [ { key: 'player', frame: 4 } ],
+      frames: [ { key: 'player', frame: 3 } ],
       frameRate: 20
     });
     this.anims.create({
       key: 'right',
-      frames: this.anims.generateFrameNumbers('player', { start: 5, end: 8 }),
+      frames: this.anims.generateFrameNumbers('player', { start: 4, end: 6 }),
       frameRate: 10,
       repeat: -1
     });
@@ -74,18 +76,18 @@ class GameScene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
 
     this.enemies = this.physics.add.group();
+    this.anims.create({
+      key: 'enemy-move',
+      frames: this.anims.generateFrameNumbers('enemy', { start: 0, end: 3 }),
+      frameRate: 6,
+      repeat: -1
+    });
+
     for (let i = 0; i < 5; i++) {
       let x = 300 + i * 150;
       let enemy = this.enemies.create(x, 500, 'enemy');
       enemy.setBounce(1).setCollideWorldBounds(true).setVelocityX(Phaser.Math.Between(-100, 100));
-
-      this.anims.create({
-        key: 'enemy-move-' + i,
-        frames: this.anims.generateFrameNumbers('enemy', { start: 0, end: 3 }),
-        frameRate: 6,
-        repeat: -1
-      });
-      enemy.play('enemy-move-' + i);
+      enemy.play('enemy-move');
     }
 
     this.physics.add.collider(this.player, platforms);
@@ -105,7 +107,7 @@ class GameScene extends Phaser.Scene {
       this.player.setVelocityX(0);
       this.player.anims.play('turn');
     }
-    if (this.cursors.up.isDown && this.player.body.touching.down) {
+    if (this.cursors.up.isDown && this.player.body.blocked.down) {
       this.player.setVelocityY(-330);
     }
 
@@ -138,7 +140,7 @@ class GameOverScene extends Phaser.Scene {
 const config = {
   type: Phaser.AUTO,
   width: 800,
-  height: 600,
+  height: 780,
   physics: {
     default: 'arcade',
     arcade: {
